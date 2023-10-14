@@ -26,6 +26,8 @@ from pptx.enum.dml import MSO_THEME_COLOR_INDEX
 from pptx.dml.color import RGBColor
 import webcolors
 
+from io import BytesIO
+
 
 class PowerPointUtil:
     SLIDE_WIDTH_INCH = 16
@@ -36,6 +38,7 @@ class PowerPointUtil:
         self.prs.slide_width  = Inches(self.SLIDE_WIDTH_INCH)
         self.prs.slide_height = Inches(self.SLIDE_HEIGHT_INCH)
         self.path = path
+        self.currentSlide = None
 
     def save(self):
         self.prs.save(self.path)
@@ -78,6 +81,28 @@ class PowerPointUtil:
             layout = self.prs.slide_layouts[6]
         self.currentSlide = self.prs.slides.add_slide(layout)
 
+        return self.currentSlide
+
+    def copySlideContent(self, srcSlide, dstSlide=None):
+        if dstSlide == None:
+            dstSlide = self.currentSlide
+        if dstSlide:
+            if isinstance(srcSlide, PowerPointUtil):
+                srcSlide = srcSlide.currentSlide
+            for srcShape in srcSlide.shapes:
+                if srcShape.has_text_frame:
+                    newShape = dstSlide.shapes.add_textbox(
+                        srcShape.left, srcShape.top, srcShape.width, srcShape.height
+                    )
+                    PowerPointUtil.copyTextFormat(srcShape.text_frame, newShape.text_frame)
+                elif srcShape.shape_type == 13:  # Shape type 13 : Picture
+                    img = srcShape.image
+                    imgData = img.blob
+                    imgStream = BytesIO(imgData)
+                    newShape = dstSlide.shapes.add_picture(imgStream, srcShape.left, srcShape.top, srcShape.width, srcShape.height)
+
+
+    # --- picture
     def addPicture(self, imagePath, x=0, y=0, width=None, height=None, isFitToSlide=True, regionWidth=None, regionHeight=None, isFitWihthinRegion=False):
         if not regionWidth:
             regionWidth = self.prs.slide_width
@@ -87,7 +112,8 @@ class PowerPointUtil:
         regionHeight = int(regionHeight+0.99)
         pic = None
         try:
-            pic = self.currentSlide.shapes.add_picture(imagePath, x, y)
+            if self.currentSlide:
+                pic = self.currentSlide.shapes.add_picture(imagePath, x, y)
         except:
             pass
         if pic:
@@ -120,6 +146,8 @@ class PowerPointUtil:
                     pic.height = picHeight
         return pic
 
+    # --- text ----
+    @staticmethod
     def nameToRgb(name):
         result = RGBColor(0,0,0)
         try:
@@ -129,6 +157,7 @@ class PowerPointUtil:
             pass
         return result
 
+    @staticmethod
     def applyExFormat(exFormat, textbox, font, text_frame):
         exFormats = exFormat.split(",")
         for anFormat in exFormats:
@@ -157,6 +186,31 @@ class PowerPointUtil:
                 shadow.color = MSO_THEME_COLOR_INDEX.ACCENT_5
                 shadow.transparency = 0
 
+    @staticmethod
+    def copyTextFormat(srcTextFrame, dstTextFrame):
+        i = 0
+        dstParagraph = dstTextFrame.paragraphs[0]
+        for srcParagraph in srcTextFrame.paragraphs:
+            if i!=0:
+                dstParagraph = dstTextFrame.add_paragraph()
+
+            if srcParagraph.font.size is not None:
+                dstParagraph.font.size = srcParagraph.font.size
+            if srcParagraph.font.name is not None:
+                dstParagraph.font.name = srcParagraph.font.name
+            dstParagraph.text = srcParagraph.text
+            if srcParagraph.alignment is not None:
+                dstParagraph.alignment = srcParagraph.alignment
+            if srcParagraph.font.color is not None and hasattr(srcParagraph.font.color, 'rgb') and srcParagraph.font.color.rgb is not None:
+                dstParagraph.font.color.rgb = srcParagraph.font.color.rgb
+            if srcParagraph.font.bold is not None:
+                dstParagraph.font.bold = srcParagraph.font.bold
+            if srcParagraph.font.italic is not None:
+                dstParagraph.font.italic = srcParagraph.font.italic
+            if srcParagraph.font.underline is not None:
+                dstParagraph.font.underline = srcParagraph.font.underline
+            i = i + 1
+
     def addText(self, text, x=Inches(0), y=Inches(0), width=None, height=None, fontFace='Calibri', fontSize=Pt(18), isAdjustSize=True, textAlign = PP_ALIGN.LEFT, isVerticalCenter=False, exFormat=None):
         if width==None:
             width=self.prs.slide_width
@@ -165,23 +219,25 @@ class PowerPointUtil:
         width = int(width+0.99)
         height = int(height+0.99)
 
-        textbox = self.currentSlide.shapes.add_textbox(x, y, width, height)
-        text_frame = textbox.text_frame
-        text_frame.text = text
-        font = text_frame.paragraphs[0].font
-        font.name = fontFace
-        font.size = fontSize
-        theHeight = textbox.height
+        if self.currentSlide:
+            textbox = self.currentSlide.shapes.add_textbox(x, y, width, height)
+            text_frame = textbox.text_frame
+            text_frame.text = text
+            font = text_frame.paragraphs[0].font
+            font.name = fontFace
+            font.size = fontSize
+            theHeight = textbox.height
 
-        if exFormat:
-            PowerPointUtil.applyExFormat(exFormat, textbox, font, text_frame)
-        
-        if isAdjustSize:
-            text_frame.auto_size = True
-            textbox.top = y
+            if exFormat:
+                PowerPointUtil.applyExFormat(exFormat, textbox, font, text_frame)
+            
+            if isAdjustSize:
+                text_frame.auto_size = True
+                textbox.top = y
 
-        if isVerticalCenter:
-            text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
+            if isVerticalCenter:
+                text_frame.vertical_anchor = MSO_ANCHOR.MIDDLE
 
-        for paragraph in text_frame.paragraphs:
-            paragraph.alignment = textAlign
+            for paragraph in text_frame.paragraphs:
+                paragraph.alignment = textAlign
+
