@@ -230,7 +230,7 @@ class PowerPointUtil:
 
             if exFormat:
                 PowerPointUtil.applyExFormat(exFormat, textbox, font, text_frame)
-            
+
             if isAdjustSize:
                 text_frame.auto_size = True
                 textbox.top = y
@@ -240,4 +240,3 @@ class PowerPointUtil:
 
             for paragraph in text_frame.paragraphs:
                 paragraph.alignment = textAlign
-
