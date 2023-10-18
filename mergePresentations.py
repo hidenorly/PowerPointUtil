@@ -35,10 +35,28 @@ def mergePowerpoints(inputFiles, outputFile):
     
     mergedPresentation.save()
 
+
+def concatPowerpoints(inputFiles, outputFile):
+    srcPresentations = [Presentation(inputFile) for inputFile in inputFiles]
+    mergedPresentation = PowerPointUtil(outputFile)
+    newSlides = []
+
+    for srcPresentation in srcPresentations:
+        for srcSlide in srcPresentation.slides:
+            mergedPresentation.addSlide()
+            mergedPresentation.copySlideContent(srcSlide)
+    
+    mergedPresentation.save()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Merge PowerPoint files. Usage: -i ppt1.pptx -i ppt2.pptx -o output.pptx")
     parser.add_argument("-i", "--input", required=True, action='append', default=[], help="Input PowerPoint files")
     parser.add_argument("-o", "--output", required=True, help="Output PowerPoint file")
+    parser.add_argument("-m", "--mode", default="combine", help="set combine or append")
     args = parser.parse_args()
 
-    mergePowerpoints(args.input, args.output)
+    if args.mode == "combine":
+        mergePowerpoints(args.input, args.output)
+    else:
+        concatPowerpoints(args.input, args.output)
