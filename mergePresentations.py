@@ -18,7 +18,7 @@ from pptx import Presentation
 from PyPowerPointUtil import PowerPointUtil
 
 
-def mergePowerpoints(inputFiles, outputFile):
+def mergePowerpoints(inputFiles, outputFile, layout=None):
     srcPresentations = [Presentation(inputFile) for inputFile in inputFiles]
     maxPages = max(len(presentation.slides) for presentation in srcPresentations)
     mergedPresentation = PowerPointUtil(outputFile)
@@ -30,7 +30,7 @@ def mergePowerpoints(inputFiles, outputFile):
     for srcPresentation in srcPresentations:
         i = 0        
         for srcSlide in srcPresentation.slides:
-            mergedPresentation.copySlideContent(srcSlide, newSlides[i])
+            mergedPresentation.copySlideContent(srcSlide, newSlides[i], layout)
             i = i + 1
     
     mergedPresentation.save()
@@ -54,9 +54,10 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input", required=True, action='append', default=[], help="Input PowerPoint files")
     parser.add_argument("-o", "--output", required=True, help="Output PowerPoint file")
     parser.add_argument("-m", "--mode", default="combine", help="set combine or append")
+    parser.add_argument("-l", "--layout", default=None, help="set left or right or top or bottom or \"\"")
     args = parser.parse_args()
 
     if args.mode == "combine":
-        mergePowerpoints(args.input, args.output)
+        mergePowerpoints(args.input, args.output, args.layout)
     else:
         concatPowerpoints(args.input, args.output)

@@ -75,6 +75,34 @@ class PowerPointUtil:
 
         return resultWidth, regionHeight
 
+    def getLayoutWithinRegion(self, width, height, regionWidth, regionHeight, isFitWihthinRegion=False):
+        resultWidth = width
+        resultHeight = height
+
+        if isFitWihthinRegion:
+            deltaWidth = resultWidth - regionWidth
+            deltaHeight = resultHeight - regionHeight
+            if deltaWidth>0 or deltaHeight>0:
+                # exceed the region then scale is required
+                if deltaWidth>deltaHeight:
+                    resultWidth = regionWidth
+                    ratio =  regionWidth/width
+                    resultHeight = int(height * ratio + 0.99)
+                else:
+                    resultHeight = regionHeight
+                    ratio = regionHeight / height
+                    resultWidth = int(width * ratio + 0.99)
+            else:
+                # No need to scale
+                resultWidth=width
+                resultHeight=height
+        else:
+            ratio = min(regionWidth/self.prs.slide_width, regionHeight/self.prs.slide_height)
+            resultWidth = width * ratio
+            resultHeight = height * ratio
+
+        return resultWidth, regionHeight
+
 
     def addSlide(self, layout=None):
         if layout == None:
@@ -83,23 +111,31 @@ class PowerPointUtil:
 
         return self.currentSlide
 
-    def copySlideContent(self, srcSlide, dstSlide=None):
+    def copySlideContent(self, srcSlide, dstSlide=None, layout=None):
+        regionX, regionY, regionWidth, regionHeight = self.getLayoutPosition(layout)
+
         if dstSlide == None:
             dstSlide = self.currentSlide
         if dstSlide:
             if isinstance(srcSlide, PowerPointUtil):
                 srcSlide = srcSlide.currentSlide
             for srcShape in srcSlide.shapes:
+                nextX = srcShape.left + regionX
+                nextY = srcShape.top + regionY
+                nextWidth, nextHeight = self.getLayoutWithinRegion(srcShape.width, srcShape.height, regionWidth, regionHeight)
+
                 if srcShape.has_text_frame:
                     newShape = dstSlide.shapes.add_textbox(
-                        srcShape.left, srcShape.top, srcShape.width, srcShape.height
+                        nextX, nextY, nextWidth, nextHeight
                     )
                     PowerPointUtil.copyTextFormat(srcShape.text_frame, newShape.text_frame)
                 elif srcShape.shape_type == 13:  # Shape type 13 : Picture
                     img = srcShape.image
                     imgData = img.blob
                     imgStream = BytesIO(imgData)
-                    newShape = dstSlide.shapes.add_picture(imgStream, srcShape.left, srcShape.top, srcShape.width, srcShape.height)
+                    newShape = dstSlide.shapes.add_picture(imgStream, nextX, nextY, nextWidth, nextHeight)
+                    newShape.width = int(nextWidth+0.99)
+                    newShape.height = int(nextHeight+0.99)
 
 
     # --- picture
