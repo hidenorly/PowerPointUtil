@@ -73,11 +73,12 @@ class PowerPointUtil:
             resultHeight = regionHeight
             resultWidth = int(regionHeight * width / height+0.99)
 
-        return resultWidth, regionHeight
+        return resultWidth,regionHeight
 
-    def getLayoutWithinRegion(self, width, height, regionWidth, regionHeight, isFitWihthinRegion=False):
-        resultWidth = width
-        resultHeight = height
+    def getLayoutWithinRegion(self, width, height, regionWidth, regionHeight, isFitWihthinRegion=True):
+        ratio = min(regionWidth/self.prs.slide_width, regionHeight/self.prs.slide_height)
+        resultWidth = float(width) * float(ratio)
+        resultHeight = float(height) * float(ratio)
 
         if isFitWihthinRegion:
             deltaWidth = resultWidth - regionWidth
@@ -86,22 +87,14 @@ class PowerPointUtil:
                 # exceed the region then scale is required
                 if deltaWidth>deltaHeight:
                     resultWidth = regionWidth
-                    ratio =  regionWidth/width
-                    resultHeight = int(height * ratio + 0.99)
+                    ratio =  regionWidth/resultWidth
+                    resultHeight = resultHeight * ratio + 0.99
                 else:
                     resultHeight = regionHeight
-                    ratio = regionHeight / height
-                    resultWidth = int(width * ratio + 0.99)
-            else:
-                # No need to scale
-                resultWidth=width
-                resultHeight=height
-        else:
-            ratio = min(regionWidth/self.prs.slide_width, regionHeight/self.prs.slide_height)
-            resultWidth = width * ratio
-            resultHeight = height * ratio
+                    ratio = regionHeight / resultHeight
+                    resultWidth = resultWidth * ratio
 
-        return resultWidth, regionHeight
+        return int(resultWidth+0.99), int(resultHeight+0.99)
 
 
     def addSlide(self, layout=None):
@@ -122,6 +115,7 @@ class PowerPointUtil:
             for srcShape in srcSlide.shapes:
                 nextX = srcShape.left + regionX
                 nextY = srcShape.top + regionY
+                # TODO: ensure nextX/Y in the region
                 nextWidth, nextHeight = self.getLayoutWithinRegion(srcShape.width, srcShape.height, regionWidth, regionHeight)
 
                 if srcShape.has_text_frame:
