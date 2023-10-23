@@ -18,7 +18,7 @@ from pptx import Presentation
 from PyPowerPointUtil import PowerPointUtil
 
 
-def mergePowerpoints(inputFiles, outputFile, layouts=None):
+def mergePowerpoints(inputFiles, outputFile, layouts=None, enableLayoutOverride=False):
     srcPresentations = [Presentation(inputFile) for inputFile in inputFiles]
     maxPages = max(len(presentation.slides) for presentation in srcPresentations)
     mergedPresentation = PowerPointUtil(outputFile)
@@ -35,7 +35,7 @@ def mergePowerpoints(inputFiles, outputFile, layouts=None):
         layout = layouts[index]
         i = 0        
         for srcSlide in srcPresentation.slides:
-            mergedPresentation.copySlideContent(srcSlide, newSlides[i], layout)
+            mergedPresentation.copySlideContent(srcSlide, newSlides[i], layout, enableLayoutOverride)
             i = i + 1
         index = index + 1
     
@@ -61,9 +61,10 @@ if __name__ == "__main__":
     parser.add_argument("-o", "--output", required=True, help="Output PowerPoint file")
     parser.add_argument("-m", "--mode", default="combine", help="set combine or append")
     parser.add_argument("-l", "--layouts", default="", help="set left or right or top or bottom or \"\"")
+    parser.add_argument("-r", "--override", default=False, action='store_true', help="set if override the layout as the -l specified layout")
     args = parser.parse_args()
 
     if args.mode == "combine":
-        mergePowerpoints(args.input, args.output, args.layouts)
+        mergePowerpoints(args.input, args.output, args.layouts, args.override)
     else:
         concatPowerpoints(args.input, args.output)

@@ -104,7 +104,7 @@ class PowerPointUtil:
 
         return self.currentSlide
 
-    def copySlideContent(self, srcSlide, dstSlide=None, layout=None):
+    def copySlideContent(self, srcSlide, dstSlide=None, layout=None, enableLayoutOverride=False):
         regionX, regionY, regionWidth, regionHeight = self.getLayoutPosition(layout)
 
         if dstSlide == None:
@@ -123,6 +123,14 @@ class PowerPointUtil:
                         nextX, nextY, nextWidth, nextHeight
                     )
                     PowerPointUtil.copyTextFormat(srcShape.text_frame, newShape.text_frame)
+
+                    if enableLayoutOverride:
+                        alignment = PP_ALIGN.LEFT
+                        if layout == "right":
+                            alignment = PP_ALIGN.RIGHT
+                        for paragraph in newShape.text_frame.paragraphs:
+                            paragraph.alignment = alignment
+
                 elif srcShape.shape_type == 13:  # Shape type 13 : Picture
                     img = srcShape.image
                     imgData = img.blob
@@ -217,7 +225,7 @@ class PowerPointUtil:
                 shadow.transparency = 0
 
     @staticmethod
-    def copyTextFormat(srcTextFrame, dstTextFrame):
+    def copyTextFormat(srcTextFrame, dstTextFrame, ):
         i = 0
         dstParagraph = dstTextFrame.paragraphs[0]
         for srcParagraph in srcTextFrame.paragraphs:
